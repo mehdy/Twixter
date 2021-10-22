@@ -106,6 +106,37 @@ func (t *Twitter) GetFollowings(username string) []*TwitterProfile {
 	return profiles
 }
 
+func (t *Twitter) GetFollowers(username string) []*TwitterProfile {
+	skipStatus := true
+	includeUserEntities := true
+
+	var cursor int64 = -1
+	profiles := []*TwitterProfile{}
+
+	for cursor != 0 {
+		follower, resp, err := t.api.Followers.List(&twitter.FollowerListParams{
+			ScreenName:          username,
+			Count:               maxFetchCount,
+			Cursor:              cursor,
+			SkipStatus:          &skipStatus,
+			IncludeUserEntities: &includeUserEntities,
+		})
+		if err != nil {
+			fmt.Printf("Failed to fetch followers of %q from twitter API: %s", username, err)
+			continue
+		}
+		defer resp.Body.Close()
+
+		cursor = follower.NextCursor
+
+		for _, u := range follower.Users {
+			profiles = append(profiles, t.toTwitterProfile(u))
+		}
+	}
+
+	return profiles
+}
+
 func (t *Twitter) toTwitterProfile(user twitter.User) *TwitterProfile {
 	joinedAt, err := time.Parse(time.RubyDate, user.CreatedAt)
 	if err != nil {
