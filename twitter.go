@@ -15,6 +15,7 @@ import (
 const (
 	// nolint: gosec // no credentials
 	twitterTokenURL = "https://api.twitter.com/oauth2/token"
+	maxFetchCount   = 200
 )
 
 // TwitterProfile represents a user's profile on Twitter.
@@ -72,6 +73,37 @@ func (t *Twitter) GetProfile(username string) (*TwitterProfile, error) {
 	defer resp.Body.Close()
 
 	return t.toTwitterProfile(*user), nil
+}
+
+func (t *Twitter) GetFollowings(username string) []*TwitterProfile {
+	skipStatus := true
+	includeUserEntities := true
+
+	var cursor int64 = -1
+	profiles := []*TwitterProfile{}
+
+	for cursor != 0 {
+		following, resp, err := t.api.Friends.List(&twitter.FriendListParams{
+			ScreenName:          username,
+			Count:               maxFetchCount,
+			Cursor:              cursor,
+			SkipStatus:          &skipStatus,
+			IncludeUserEntities: &includeUserEntities,
+		})
+		if err != nil {
+			fmt.Printf("Failed to fetch followings of %q from twitter API: %s", username, err)
+			continue
+		}
+		defer resp.Body.Close()
+
+		cursor = following.NextCursor
+
+		for _, u := range following.Users {
+			profiles = append(profiles, t.toTwitterProfile(u))
+		}
+	}
+
+	return profiles
 }
 
 func (t *Twitter) toTwitterProfile(user twitter.User) *TwitterProfile {
