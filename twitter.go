@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/dghubble/go-twitter/twitter"
-	"github.com/google/uuid"
 	"golang.org/x/oauth2/clientcredentials"
 )
 
@@ -20,7 +19,6 @@ const (
 
 // TwitterProfile represents a user's profile on Twitter.
 type TwitterProfile struct {
-	ID        uuid.UUID
 	CreatedAt time.Time
 	UpdatedAt time.Time
 
