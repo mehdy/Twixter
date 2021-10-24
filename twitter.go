@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/dghubble/go-twitter/twitter"
+	"github.com/spf13/viper"
 	"golang.org/x/oauth2/clientcredentials"
 )
 
@@ -51,10 +51,10 @@ type Twitter struct {
 	api *twitter.Client
 }
 
-func NewTwitter() *Twitter {
+func NewTwitter(config *viper.Viper) *Twitter {
 	creds := &clientcredentials.Config{
-		ClientID:     os.Getenv("TWITTER_CONSUMER_KEY"),
-		ClientSecret: os.Getenv("TWITTER_CONSUMER_SECRET"),
+		ClientID:     config.GetString("twitter.consumer.key"),
+		ClientSecret: config.GetString("twitter.consumer.secret"),
 		TokenURL:     twitterTokenURL,
 	}
 

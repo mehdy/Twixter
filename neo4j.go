@@ -2,19 +2,19 @@ package twixter
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
+	"github.com/spf13/viper"
 )
 
 type Neo4j struct {
 	driver neo4j.Driver
 }
 
-func NewNeo4j() *Neo4j {
+func NewNeo4j(config *viper.Viper) *Neo4j {
 	driver, err := neo4j.NewDriver(
-		os.Getenv("NEO4J_URI"),
-		neo4j.BasicAuth(os.Getenv("NEO4J_USER"), os.Getenv("NEO4J_PASS"), ""),
+		config.GetString("neo4j.uri"),
+		neo4j.BasicAuth(config.GetString("neo4j.user"), config.GetString("neo4j.pass"), ""),
 	)
 	if err != nil {
 		fmt.Printf("Failed to connect to neo4j: %s", err)
