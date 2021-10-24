@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dghubble/go-twitter/twitter"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2/clientcredentials"
 )
@@ -49,9 +50,10 @@ type TwitterProfile struct {
 
 type Twitter struct {
 	api *twitter.Client
+	log *logrus.Logger
 }
 
-func NewTwitter(config *viper.Viper) *Twitter {
+func NewTwitter(config *viper.Viper, log *logrus.Logger) *Twitter {
 	creds := &clientcredentials.Config{
 		ClientID:     config.GetString("twitter.consumer.key"),
 		ClientSecret: config.GetString("twitter.consumer.secret"),
@@ -60,13 +62,14 @@ func NewTwitter(config *viper.Viper) *Twitter {
 
 	return &Twitter{
 		api: twitter.NewClient(creds.Client(context.TODO())),
+		log: log,
 	}
 }
 
 func (t *Twitter) GetProfile(username string) (*TwitterProfile, error) {
 	user, resp, err := t.api.Users.Show(&twitter.UserShowParams{ScreenName: username})
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch profile from twitter API: %w", err)
+		return nil, fmt.Errorf("Failed to fetch profile from twitter API: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -89,7 +92,7 @@ func (t *Twitter) GetFollowings(username string) []*TwitterProfile {
 			IncludeUserEntities: &includeUserEntities,
 		})
 		if err != nil {
-			fmt.Printf("Failed to fetch followings of %q from twitter API: %s", username, err)
+			t.log.WithError(err).Errorf("Failed to fetch followings of %q from twitter API", username)
 			continue
 		}
 		defer resp.Body.Close()
@@ -120,7 +123,7 @@ func (t *Twitter) GetFollowers(username string) []*TwitterProfile {
 			IncludeUserEntities: &includeUserEntities,
 		})
 		if err != nil {
-			fmt.Printf("Failed to fetch followers of %q from twitter API: %s", username, err)
+			t.log.WithError(err).Errorf("Failed to fetch followers of %q from twitter API", username)
 			continue
 		}
 		defer resp.Body.Close()
@@ -138,19 +141,18 @@ func (t *Twitter) GetFollowers(username string) []*TwitterProfile {
 func (t *Twitter) toTwitterProfile(user twitter.User) *TwitterProfile {
 	joinedAt, err := time.Parse(time.RubyDate, user.CreatedAt)
 	if err != nil {
-		fmt.Printf("failed to parse joinedAt(%v) time for %q: %s", user.CreatedAt, user.ScreenName, err)
-	}
-
-	jsonEntites, err := json.Marshal(user.Entities)
-	if err != nil {
-		fmt.Printf("failed to marshal user.Entities(%v) to JSON for %q: %s", user.Entities, user.ScreenName, err)
+		t.log.WithError(err).Errorf("Failed to parse CreatedAt(%v) for %q", user.CreatedAt, user.ScreenName)
 	}
 
 	var ent map[string]interface{}
-
-	err = json.Unmarshal(jsonEntites, &ent)
+	jsonEntites, err := json.Marshal(user.Entities)
 	if err != nil {
-		fmt.Printf("failed to unmarshall user.Entities(%v) from JSON for %q: %s", ent, user.ScreenName, err)
+		t.log.WithError(err).Errorf("Failed to marshal Entities(%v) for %q", user.Entities, user.ScreenName)
+	} else {
+		err = json.Unmarshal(jsonEntites, &ent)
+		if err != nil {
+			t.log.WithError(err).Errorf("Failed to unmarshall Entities(%v) for %q", ent, user.ScreenName)
+		}
 	}
 
 	return &TwitterProfile{

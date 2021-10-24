@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/dghubble/go-twitter v0.0.0-20211002212826-ad02880e616b
 	github.com/neo4j/neo4j-go-driver/v4 v4.3.3
+	github.com/sirupsen/logrus v1.8.1
 )
 
 require (
