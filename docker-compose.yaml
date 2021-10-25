@@ -6,5 +6,9 @@ services:
       - "7687:7687"
     volumes:
       - neo4jData:/data
+  nats:
+    image: nats
+    ports:
+      - "4222:4222"
 volumes:
   neo4jData: {}
